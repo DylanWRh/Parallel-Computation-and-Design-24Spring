@@ -1,0 +1,11 @@
+cAlculATIon   	diAgo # diagonalization of a matrix
+
+ matrix_priNt   1 	# print the matrix 
+
+    nCOls   6 # number of columns
+     
+
+matrix_TYpe rANdom # initialization of a matrix
+
+
+nrows   6 # number of rows
