@@ -1,6 +1,7 @@
 #include "Matrix.h"
 #include "Timer.h"
 #include <cblas.h>
+#include <lapacke.h>
 #include <limits>
 #include <cassert>
 #include <sstream>
@@ -24,17 +25,17 @@ Matrix::~Matrix() {
 }
 
 void Matrix::set_zero() {
-    Timer::tick("Matrix", "set_zero()");
+    // Timer::tick("Matrix", "set_zero()");
     for (int i = 0; i < nrows; ++i) {
         for (int j = 0; j < ncols; ++j) {
             d[i][j] = 0.0;
         }
     }
-    Timer::tick("Matrix", "set_zero()");
+    // Timer::tick("Matrix", "set_zero()");
 }
 
 void Matrix::set_zero(const int &nrows_, const int &ncols_) {
-    Timer::tick("Matrix", "set_zero(const int &, const int &)");
+    // Timer::tick("Matrix", "set_zero(const int &, const int &)");
     if (d) {
         for (int i = 0; i < nrows; ++i) {
             delete[] d[i];
@@ -48,7 +49,7 @@ void Matrix::set_zero(const int &nrows_, const int &ncols_) {
         d[i] = new double[ncols];
     }
     set_zero();
-    Timer::tick("Matrix", "set_zero(const int &, const int &)");
+    // Timer::tick("Matrix", "set_zero(const int &, const int &)");
 }
 
 double Matrix::get_max() const {
@@ -126,6 +127,15 @@ Matrix Matrix::operator*(const Matrix &mat) const {
     return result;
 }
 
+void Matrix::read_symm(std::istream& is) {
+    assert(nrows == ncols);
+    for (int i = 0; i < nrows; ++i) {
+        for (int j = i; j < ncols; ++j) {
+            is >> d[i][j];
+            d[j][i] = d[i][j];
+        }
+    }
+}
 
 std::ostream& operator<<(std::ostream& os, const Matrix& matrix) {
     for (int i = 0; i < matrix.nrows; ++i) {
@@ -168,9 +178,36 @@ Matrix call_dgemm(const Matrix &matA, const Matrix &matB) {
         *matB.d,        // Data of B
         matB.ncols,     // Columns of matB
         0.0,            // Set beta to 0
-        *result.d,      // Data of result
+        result.d[0],      // Data of result
         result.ncols    // Columns of result
     );
     Timer::tick("BLAS", oss.str());
     return result;    
+}
+
+int call_dsyev(const Matrix &mat, double* eigval) {
+    assert (mat.ncols == mat.nrows);
+
+    std::ostringstream oss;
+    oss << "Eigval, (" << mat.nrows << "," << mat.ncols << ")";
+    Timer::tick("LAPACK", oss.str());
+
+    int lda = mat.nrows ;
+
+    int info = LAPACKE_dsyev(
+        LAPACK_ROW_MAJOR,   // Row major layout
+        'V',                // Compute eigenvalues and eigenvectors
+        'U',                // Upper triangle is stored
+        mat.nrows,          // The order of mat
+        mat.d[0],           // Data
+        lda,                // Leading dim of mat
+        eigval              // Results of eigen values
+    );
+    if (info != 0) {
+        std::cerr << "Failed to diagonalize matrix" << std::endl;
+        return 1;
+    }
+
+    Timer::tick("LAPACK", oss.str());
+    return info;
 }

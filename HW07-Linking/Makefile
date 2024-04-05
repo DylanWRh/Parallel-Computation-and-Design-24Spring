@@ -5,7 +5,7 @@ Timer.o\
 main.o\
 
 CXX=g++
-LDFLAGS=-lblas
+LDFLAGS=-lblas -llapacke
 OPTION=-O3
 
 serial: ${OBJS}

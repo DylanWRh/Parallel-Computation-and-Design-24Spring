@@ -4,138 +4,115 @@
 #include <iostream>
 #include <fstream>
 
+int test_matmul(int nrow1, int ncol1, int nrow2, int ncol2, 
+                std::string filename1, std::string filename2,
+                std::string filename_out, std::string filename_out_blas) {
+
+    Matrix mat1(nrow1, ncol1);
+    Matrix mat2(nrow2, ncol2);
+
+    {
+        std::ifstream file(filename1);
+        if (!file) {
+            std::cerr << "Failed to open the file " << filename1 << std::endl;
+            return 1;
+        }
+        file >> mat1;
+        file.close();
+    }
+
+    {
+        std::ifstream file(filename2);
+        if (!file) {
+            std::cerr << "Failed to open the file " << filename2 << std::endl;
+            return 1;
+        }
+        file >> mat2;
+        file.close();
+    }
+    
+    Matrix result = mat1 * mat2;
+    {
+        std::ofstream file(filename_out);
+        if (!file) {
+            std::cerr << "Failed to write file " << filename_out << std::endl;
+            return 1;
+        }
+        file << result;
+        file.close();
+    }
+
+    result = call_dgemm(mat1, mat2);
+    {
+        std::ofstream file(filename_out_blas);
+        if (!file) {
+            std::cerr << "Failed to write file " << filename_out_blas << std::endl;
+            return 1;
+        }
+        file << result;
+        file.close();
+    }
+
+    return 0;
+}
+
+int test_eigval(int nrows, std::string filename, std::string filename_out) {
+    Matrix mat(nrows, nrows);
+    {
+        std::ifstream file(filename);
+        if (!file) {
+            std::cerr << "Failed to open the file " << filename << std::endl;
+            return 1;
+        }
+        // file >> mat;
+        mat.read_symm(file);
+        file.close();
+    }
+
+    double *n = new double[nrows];
+    call_dsyev(mat, n);
+
+    {
+        std::ofstream file(filename_out);
+        if (!file) {
+            std::cerr << "Failed to write file " << filename_out << std::endl;
+            return 1;
+        }
+        file << "Eigenvalues:" << std::endl;
+        for (int i = 0; i < nrows; ++i) {
+            file << n[i] << std::endl;
+        }
+
+        file << std::endl << "Eigenvalues" << std::endl;
+        for (int i = 0; i < nrows; ++i) {
+            for (int j = 0; j < nrows; ++j) {
+                int index = i * nrows + j;
+                file << mat.d[0][index] << " ";
+            }
+            file << std::endl;
+        }
+        file.close();
+    }
+    return 0;
+}
+
 int main() {
-    Matrix mat3_1(3, 3);
-    {    
-        std::ifstream file("./test/mat3_1.in");
-        if (!file) {
-            std::cerr << "Failed to open the file mat3_1.in." << std::endl;
-            return 1;
-        }
-        file >> mat3_1;
-        file.close();
-    }
+    test_matmul(
+        3, 3, 3, 3, "./test/mat3_1.in", "./test/mat3_2.in",
+        "./test/mat3.out", "./test/mat3_blas.out"
+    );
+    test_matmul(
+        100, 100, 100, 100, "./test/mat100_1.in", "./test/mat100_2.in",
+        "./test/mat100.out", "./test/mat100_blas.out"
+    );
+    test_matmul(
+        1000, 1000, 1000, 1000, "./test/mat1000_1.in", "./test/mat1000_2.in",
+        "./test/mat1000.out", "./test/mat1000_blas.out"
+    );
 
-    Matrix mat3_2(3, 3);
-    {    
-        std::ifstream file("./test/mat3_2.in");
-        if (!file) {
-            std::cerr << "Failed to open the file mat3_2.in." << std::endl;
-            return 1;
-        }
-        file >> mat3_2;
-        file.close();
-    }
-
-    Matrix res3 = mat3_1 * mat3_2;
-    {
-        std::ofstream file("./test/mat3.out");
-        if (!file) {
-            std::cerr << "Failed to write file mat3.out." << std::endl;
-            return 1;
-        }
-        file << res3;
-        file.close();
-    }
-
-    Matrix res3_blas = call_dgemm(mat3_1, mat3_2);
-    {
-        std::ofstream file("./test/mat3_blas.out");
-        if (!file) {
-            std::cerr << "Failed to write file mat3_blas.out." << std::endl;
-            return 1;
-        }
-        file << res3_blas;
-        file.close();
-    }
-
-    Matrix mat100_1(100, 100);
-    {    
-        std::ifstream file("./test/mat100_1.in");
-        if (!file) {
-            std::cerr << "Failed to open the file mat100_1.in." << std::endl;
-            return 1;
-        }
-        file >> mat100_1;
-        file.close();
-    }
-
-    Matrix mat100_2(100, 100);
-    {    
-        std::ifstream file("./test/mat100_2.in");
-        if (!file) {
-            std::cerr << "Failed to open the file mat100_2.in." << std::endl;
-            return 1;
-        }
-        file >> mat100_2;
-        file.close();
-    }
-
-    Matrix res100 = mat100_1 * mat100_2;
-    {
-        std::ofstream file("./test/mat100.out");
-        if (!file) {
-            std::cerr << "Failed to write file mat100.out." << std::endl;
-            return 1;
-        }
-        file << res100;
-        file.close();
-    }
-
-    Matrix res100_blas = call_dgemm(mat100_1, mat100_2);
-    {
-        std::ofstream file("./test/mat100_blas.out");
-        if (!file) {
-            std::cerr << "Failed to write file mat100_blas.out." << std::endl;
-            return 1;
-        }
-        file << res100_blas;
-        file.close();
-    }
-
-    Matrix mat1000_1(1000, 1000);
-    {    
-        std::ifstream file("./test/mat1000_1.in");
-        if (!file) {
-            std::cerr << "Failed to open the file mat1000_1.in." << std::endl;
-            return 1;
-        }
-        file >> mat1000_1;
-        file.close();
-    }
-
-    Matrix mat1000_2(1000, 1000);
-    {    
-        std::ifstream file("./test/mat1000_2.in");
-        if (!file) {
-            std::cerr << "Failed to open the file mat1000_2.in." << std::endl;
-            return 1;
-        }
-        file >> mat1000_2;
-        file.close();
-    }
-
-    Matrix res1000 = mat1000_1 * mat1000_2;
-    {
-        std::ofstream file("./test/mat1000.out");
-        if (!file) {
-            std::cerr << "Failed to write file mat1000.out." << std::endl;
-            return 1;
-        }
-        file << res1000;
-        file.close();
-    }
-
-    Matrix res1000_blas = call_dgemm(mat1000_1, mat1000_2);
-    {
-        std::ofstream file("./test/mat1000_blas.out");
-        if (!file) {
-            std::cerr << "Failed to write file mat1000_blas.out." << std::endl;
-            return 1;
-        }
-        file << res1000_blas;
-        file.close();
-    }
+    test_eigval(3, "./test/sym3.in", "./test/sym3.out");
+    test_eigval(100, "./test/sym100.in", "./test/sym100.out");
+    test_eigval(1000, "./test/sym1000.in", "./test/sym1000.out");
 
     Timer::show_info();
     return 0;
