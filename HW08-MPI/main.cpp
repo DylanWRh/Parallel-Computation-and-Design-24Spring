@@ -3,6 +3,8 @@
 #include "Timer.h"
 #include <iostream>
 #include <fstream>
+#include <string>
+#include <cstring>
 
 int test_matmul(int nrow1, int ncol1, int nrow2, int ncol2, 
                 std::string filename1, std::string filename2,
@@ -96,10 +98,43 @@ int test_eigval(int nrows, std::string filename, std::string filename_out) {
     return 0;
 }
 
-int main() {
+int main(int argc, char const *argv[]) {
+    bool print_mpi_log = false;
+
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "--print_mpi_log") == 0) {
+            print_mpi_log = true;
+            break;
+        }
+    }
 
 #ifdef __MPI
     MPI_Init(NULL, NULL);
+    std::streambuf *coutbuf = std::cout.rdbuf(); 
+    std::ofstream out;
+    
+    int rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    if (rank == 0) {
+        std::string cmd = "mkdir -p output";
+        if (system(cmd.c_str())  != 0) {
+            std::cerr << "Failed to create output directory" << std::endl;
+            return 1;
+        }
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    if (!print_mpi_log) {
+        out.open("output/output.txt");
+        std::cout.rdbuf(out.rdbuf()); 
+    }
+    else {
+        std::string filename = "output/output" + std::to_string(rank) + ".txt";
+        out.open(filename);
+        std::cout.rdbuf(out.rdbuf()); 
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
 #endif
 
     test_matmul(
@@ -122,6 +157,12 @@ int main() {
     Timer::show_info();
 
 #ifdef __MPI
+    std::cout.rdbuf(coutbuf);
+    if (!print_mpi_log) {
+        out.close();
+    } else {
+        out.close();
+    }
     MPI_Finalize();
 #endif
 

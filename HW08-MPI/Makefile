@@ -21,3 +21,4 @@ serial: ${OBJS}
 clean:
 	rm -f *.o *.exe
 	rm -rf test
+	rm -rf output

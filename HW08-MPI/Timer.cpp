@@ -35,9 +35,9 @@ void Timer::tick(std::string classname, std::string funcname) {
         double duration = endTime - single_timer[key];
         timer[key].second += duration;
         timer[key].first++;
-        if (rank == 0) {
-            show_single_tick_info(classname, funcname, timer[key]);
-        }
+
+        std::cout << "Rank " << rank << ": ";
+        show_single_tick_info(classname, funcname, timer[key]);
     }
 #else
     TIMER_KEY key = std::make_pair(classname, funcname);
@@ -50,7 +50,7 @@ void Timer::tick(std::string classname, std::string funcname) {
         is_timing[key] = false;
         auto endTime = std::chrono::steady_clock::now();
         auto duration = endTime.time_since_epoch();
-        timer[key].second += duration.count() / 1000.0f;
+        timer[key].second += (std::chrono::duration_cast<std::chrono::duration<double>>(duration).count() - single_timer[key]) / 1000.0f;
         timer[key].first ++;
         show_single_tick_info(classname, funcname, timer[key]);
     }
