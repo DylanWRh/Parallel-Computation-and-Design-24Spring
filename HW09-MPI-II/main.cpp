@@ -1,4 +1,5 @@
 #include "Matrix.h"
+#include "Matrix.cpp"
 
 #ifdef __MPI
 #include <mpi.h>
@@ -7,16 +8,18 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <complex>
 #include <cstring>
 
+template <typename T>
 int test_matadd(int nrow, int ncol, 
                 std::string filename1, 
                 std::string filename2,
                 std::string filename_out) {
 
-    Matrix mat1;
-    Matrix mat2;
-    Matrix result;
+    Matrix<T> mat1;
+    Matrix<T> mat2;
+    Matrix<T> result;
 
 #ifdef __MPI
     int size, rank;
@@ -27,9 +30,9 @@ int test_matadd(int nrow, int ncol,
     int rows_left = nrow % (size - 1);
 
     if (rank == 0) {
-        result = Matrix(nrow, ncol);
-        mat1 = Matrix(nrow, ncol);
-        mat2 = Matrix(nrow, ncol);
+        result = Matrix<T>(nrow, ncol);
+        mat1 = Matrix<T>(nrow, ncol);
+        mat2 = Matrix<T>(nrow, ncol);
     }
    
     if (rank == 0) {
@@ -61,10 +64,10 @@ int test_matadd(int nrow, int ncol,
 
         int cur_row = 0;
         for (int i = 1; i < size; i++) {
-            double* buf = mat1.d[cur_row];
+            T* buf = mat1.d[cur_row];
             int rows_send = rows_per_proc + (i <= rows_left);
             MPI_Isend(
-                buf, rows_send * ncol, MPI_DOUBLE, 
+                buf, rows_send * ncol * sizeof(T), MPI_BYTE, 
                 i, tag_mat1, MPI_COMM_WORLD, &req_send1_all[i-1]);
             
             cur_row += rows_send;
@@ -72,21 +75,21 @@ int test_matadd(int nrow, int ncol,
 
         cur_row = 0;
         for (int i = 1; i < size; i++) {
-            double* buf = mat2.d[cur_row];
+            T* buf = mat2.d[cur_row];
             int rows_send = rows_per_proc + (i <= rows_left);
             MPI_Isend(
-                buf, rows_send * ncol, MPI_DOUBLE, 
+                buf, rows_send * ncol * sizeof(T), MPI_BYTE, 
                 i, tag_mat2, MPI_COMM_WORLD, &req_send2_all[i-1]);
             cur_row += rows_send;
         }
         
         cur_row = 0;
         for (int i = 1; i < size; i++) {
-            double* buf = result.d[cur_row];
+            T* buf = result.d[cur_row];
             int rows_recv = rows_per_proc + (i <= rows_left);
             
             MPI_Irecv(
-                buf, rows_recv * ncol, MPI_DOUBLE, 
+                buf, rows_recv * ncol * sizeof(T), MPI_BYTE, 
                 i, tag_res, MPI_COMM_WORLD, &req_recv_all[i-1]);
             cur_row += rows_recv;
         }
@@ -107,24 +110,24 @@ int test_matadd(int nrow, int ncol,
 
         int rows_recv = rows_per_proc + (rank <= rows_left);
 
-        mat1 = Matrix(rows_recv, ncol);
+        mat1 = Matrix<T>(rows_recv, ncol);
         MPI_Irecv(
-            mat1.d[0], rows_recv * ncol, MPI_DOUBLE, 
+            mat1.d[0], rows_recv * ncol * sizeof(T), MPI_BYTE, 
             0, tag_mat1, MPI_COMM_WORLD, &req_recv1);
         
-        mat2 = Matrix(rows_recv, ncol);
+        mat2 = Matrix<T>(rows_recv, ncol);
         MPI_Irecv(
-            mat2.d[0], rows_recv * ncol, MPI_DOUBLE, 
+            mat2.d[0], rows_recv * ncol * sizeof(T), MPI_BYTE, 
             0, tag_mat2, MPI_COMM_WORLD, &req_recv2);
 
         MPI_Wait(&req_recv1, MPI_STATUS_IGNORE);
         MPI_Wait(&req_recv2, MPI_STATUS_IGNORE);
         
-        result = Matrix(rows_recv, ncol);
+        result = Matrix<T>(rows_recv, ncol);
         result = mat1 + mat2;
                 
         MPI_Isend(
-            result.d[0], rows_recv * ncol, MPI_DOUBLE, 
+            result.d[0], rows_recv * ncol * sizeof(T), MPI_BYTE, 
             0, tag_res, MPI_COMM_WORLD, &req_send);
         
         MPI_Wait(&req_send, MPI_STATUS_IGNORE);
@@ -160,7 +163,7 @@ int main() {
         return 1;
     }
 
-    test_matadd(
+    test_matadd<double>(
         3, 3, 
         "./test/mat_3_3_1",
         "./test/mat_3_3_2",
@@ -168,7 +171,7 @@ int main() {
     );
     MPI_Barrier(MPI_COMM_WORLD);
 
-    test_matadd(
+    test_matadd<double>(
         3, 100, 
         "./test/mat_3_100_1",
         "./test/mat_3_100_2",
@@ -176,7 +179,7 @@ int main() {
     );
     MPI_Barrier(MPI_COMM_WORLD);  
 
-    test_matadd(
+    test_matadd<double>(
         3, 500, 
         "./test/mat_3_500_1",
         "./test/mat_3_500_2",
@@ -184,7 +187,7 @@ int main() {
     );
     MPI_Barrier(MPI_COMM_WORLD);  
 
-    test_matadd(
+    test_matadd<double>(
         100, 3, 
         "./test/mat_100_3_1",
         "./test/mat_100_3_2",
@@ -192,7 +195,7 @@ int main() {
     );
     MPI_Barrier(MPI_COMM_WORLD); 
 
-    test_matadd(
+    test_matadd<double>(
         100, 100, 
         "./test/mat_100_100_1",
         "./test/mat_100_100_2",
@@ -200,11 +203,59 @@ int main() {
     );
     MPI_Barrier(MPI_COMM_WORLD); 
 
-    test_matadd(
+    test_matadd<double>(
         100, 500, 
         "./test/mat_100_500_1",
         "./test/mat_100_500_2",
         "./test/mat_100_500_out"
+    );
+    MPI_Barrier(MPI_COMM_WORLD); 
+
+    test_matadd<std::complex<double>>(
+        3, 3, 
+        "./test_complex/mat_3_3_1",
+        "./test_complex/mat_3_3_2",
+        "./test_complex/mat_3_3_out"
+    );
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    test_matadd<std::complex<double>>(
+        3, 100, 
+        "./test_complex/mat_3_100_1",
+        "./test_complex/mat_3_100_2",
+        "./test_complex/mat_3_100_out"
+    );
+    MPI_Barrier(MPI_COMM_WORLD);  
+
+    test_matadd<std::complex<double>>(
+        3, 500, 
+        "./test_complex/mat_3_500_1",
+        "./test_complex/mat_3_500_2",
+        "./test_complex/mat_3_500_out"
+    );
+    MPI_Barrier(MPI_COMM_WORLD);  
+
+    test_matadd<std::complex<double>>(
+        100, 3, 
+        "./test_complex/mat_100_3_1",
+        "./test_complex/mat_100_3_2",
+        "./test_complex/mat_100_3_out"
+    );
+    MPI_Barrier(MPI_COMM_WORLD); 
+
+    test_matadd<std::complex<double>>(
+        100, 100, 
+        "./test_complex/mat_100_100_1",
+        "./test_complex/mat_100_100_2",
+        "./test_complex/mat_100_100_out"
+    );
+    MPI_Barrier(MPI_COMM_WORLD); 
+
+    test_matadd<std::complex<double>>(
+        100, 500, 
+        "./test_complex/mat_100_500_1",
+        "./test_complex/mat_100_500_2",
+        "./test_complex/mat_100_500_out"
     );
     MPI_Barrier(MPI_COMM_WORLD); 
 

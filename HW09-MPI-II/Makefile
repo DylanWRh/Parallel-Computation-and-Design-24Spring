@@ -1,14 +1,13 @@
-OBJS = Matrix.o\
-main.o\
+OBJS = main.o\
+Matrix.o
 
-#CXX=g++
+# CXX=g++
 CXX=mpicxx
-LDFLAGS=-lblas -llapacke
-#OPTION=-O3
+# OPTION=-O3
 OPTION=-O3 -D__MPI
 
 serial: ${OBJS}
-	${CXX} ${OPTION} -o main.exe ${OBJS} $(LDFLAGS)
+	${CXX} ${OPTION} -o main.exe ${OBJS} 
 	python make_test.py
 
 .cpp.o:
@@ -17,5 +16,5 @@ serial: ${OBJS}
 
 clean:
 	rm -f *.o *.exe
-	rm -rf test
+	rm -rf test test_complex
 	rm -rf output

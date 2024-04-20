@@ -3,12 +3,13 @@
 
 #include <iostream>
 
+template <class T>
 class Matrix {
 public:
     int nrows = 0;
     int ncols = 0;
 
-    double **d = nullptr;
+    T **d = nullptr;
 
     Matrix();
     Matrix(const int &nrows_, const int &ncols_, const bool flag_zero = true);
@@ -17,23 +18,15 @@ public:
     void set_zero();
     void set_zero(const int &nrows_, const int &ncols_);
 
-    double get_max() const;
-    double get_min() const;
+    T get_max() const;
+    T get_min() const;
 
-    Matrix operator+(const Matrix &mat) const;
-    Matrix operator-(const Matrix &mat) const;
-    Matrix operator*(const Matrix &mat) const;
+    Matrix<T> operator+(const Matrix<T> &mat) const;
+    Matrix<T> operator-(const Matrix<T> &mat) const;
+    Matrix<T> operator*(const Matrix<T> &mat) const;
 
-    void read_symm(std::istream& is);
-
-    friend std::ostream& operator<<(std::ostream& os, const Matrix& mat);
-    friend std::istream& operator>>(std::istream& is, Matrix& mat);
+    template<class _T>friend std::ostream& operator<<(std::ostream& os, const Matrix<_T>& mat);
+    template<class _T>friend std::istream& operator>>(std::istream& is, Matrix<_T>& mat);
 };
-
-// Calculate matrix multiplication of matA and matB and write result to a new Matrix
-Matrix call_dgemm(const Matrix &matA, const Matrix &matB);
-
-// Calculate eigenvectors and eigenvalues of 
-int call_dsyev(const Matrix &mat, double* eigval);
 
 #endif
