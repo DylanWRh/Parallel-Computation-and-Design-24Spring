@@ -1,4 +1,4 @@
-# 并行程序设计 - 大作业文档 6/16
+# 并行程序设计 - 大作业文档 6/15
 
 ## 目前提交的PR总结
 
@@ -6,6 +6,7 @@
 - [x] ([#4229](https://github.com/deepmodeling/abacus-develop/pull/4229)) 移除不再被使用的`Gint_Gamma::vl_grid_to_2D`函数相关的代码
 - [x] ([#4239](https://github.com/deepmodeling/abacus-develop/pull/4239)) 对`BaseMatrix`类进行优化，使之更安全
 - [x] ([#4243](https://github.com/deepmodeling/abacus-develop/pull/4243)) 对`AtomPair`类进行优化，修改了成员`R_index`的接口以及与之相关的代码
+- [ ] ([#4399](https://github.com/deepmodeling/abacus-develop/pull/4399)) 在`HTransPara`的`pack_data`和`unpack_data`中添加了OpenMP进行并行
 
 
 
@@ -235,6 +236,7 @@ void HTransPara<T>::pack_data(int irank, T* values)
 - `ap_data`存储的变量表达的含义不同，可以考虑建立一个`APInfo`类，并将`ap_data`及对应的代码类型修改成`std::vector<APInfo>`以增加代码的可读性和可维护性
   - 经进一步调研，发现`ap_data`需要使用MPI中进行数据交换，因此使用基础数据类型也许更合理，而不是使用自定义的数据结构，这个优化有待商榷
 - 使用OpenMP并行运行for循环
+  - 已经提交了**PR[[#4399](https://github.com/deepmodeling/abacus-develop/pull/4399)]**
 
 ## 3. 作业收获与总结
 
